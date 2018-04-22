@@ -1,0 +1,45 @@
+nginx:
+  image: ttdev.fidelize.com.br:5000/nginx
+  container_name: nginx
+  restart: always
+  ports:
+   - "80:80"
+  volumes:
+   - ./config/docker/nginx_conf:/etc/nginx/conf.d
+  volumes_from:
+   - php:rw
+  links:
+   - php
+
+php:
+  image: ttdev.fidelize.com.br:5000/php:7.1.15
+  container_name: php
+  restart: always
+  command: bash -c "sed -i \"s/memory_limit = 128M/memory_limit = 512M/\" /usr/local/etc/php/php.ini
+    && echo "xdebug.remote_enable=1" >> /usr/local/etc/php/conf.d/ext-xdebug.ini
+    && echo "xdebug.remote_host=172.17.0.1" >> /usr/local/etc/php/conf.d/ext-xdebug.ini
+    && echo "xdebug.remote_port=9000" >> /usr/local/etc/php/conf.d/ext-xdebug.ini
+    && echo "xdebug.remote_handler=dbgp" >> /usr/local/etc/php/conf.d/ext-xdebug.ini
+    && sed -i \"s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/\" /usr/local/etc/php/php.ini
+    && sed -i \"s/max_execution_time = 30/max_execution_time = 600/\" /usr/local/etc/php/php.ini
+    && php-fpm"
+
+  environment:
+    - XDEBUG_CONFIG=remote_host=172.17.0.1
+    - PHP_IDE_CONFIG=serverName=Local
+
+  volumes:
+   - ./:/var/www/html
+   -  /usr/bin/ssh:/usr/bin/ssh
+  links:
+   - mongo:mongo
+
+mongo:
+  image: ttdev.fidelize.com.br:5000/mongo
+  container_name: mongo
+  restart: always
+  ports:
+   - "27017:27017"
+  volumes:
+   - ../volumes/mongo:/data/db
+
